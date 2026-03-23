@@ -3,665 +3,420 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LinguoKids: Magic Sound Mission</title>
+    <title>Footprints Sciences 3rd Grade - Competition Edition</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Bubblegum+Sans&family=Fredoka+One&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --brand-primary: #6366f1;
-            --brand-secondary: #ec4899;
-            --bg-main: #f0f9ff;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-main);
-            background-image: url("https://www.transparenttextures.com/patterns/cubes.png");
-            color: #1e293b;
-            overflow-x: hidden;
-            user-select: none;
-            touch-action: manipulation;
-        }
-
-        .font-display { font-family: 'Bubblegum Sans', cursive; }
-        .font-title { font-family: 'Fredoka One', cursive; }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 4px solid #ffffff;
-            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.1);
-        }
-
-        .mission-locked {
-            opacity: 0.6;
-            filter: grayscale(1);
-            cursor: not-allowed !important;
-            pointer-events: none;
-        }
-
-        .bounce-in { animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
-        @keyframes bounceIn {
-            0% { transform: scale(0.3); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .float { animation: floating 3s ease-in-out infinite; }
-        @keyframes floating {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .letter-slot {
-            width: 50px;
-            height: 70px;
-            background: #f1f5f9;
-            border-radius: 16px;
-            border: 3px dashed #cbd5e1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-family: 'Fredoka One', cursive;
-            color: #6366f1;
-            transition: all 0.2s;
-        }
-
-        .letter-slot.correct {
-            border-style: solid;
-            border-color: #10b981;
-            background: #ecfdf5;
-            transform: scale(1.05);
-        }
-
-        .letter-slot.wrong {
-            border-color: #ef4444;
-            animation: shake 0.4s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        .spelling-tile {
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 6px 0 #cbd5e1;
-        }
-        .spelling-tile:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 #cbd5e1;
-        }
-
-        .progress-bar-inner {
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .badge-card {
-            transition: all 0.3s ease;
-        }
-        .badge-card:hover {
-            transform: translateY(-5px) rotate(2deg);
-        }
-
-        /* Radar heard feedback */
-        .radar-card.heard {
-            border-color: #6366f1;
-            background: #eef2ff;
-        }
-        .radar-card.heard .heard-check {
-            display: block !important;
-        }
-    </style>
-</head>
-<body class="min-h-screen">
-
-    <!-- TOP HUD -->
-    <nav class="fixed top-0 left-0 right-0 z-50 p-4">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="glass-card px-5 py-2 rounded-full flex items-center gap-3 border-none">
-                    <span class="text-2xl">💎</span>
-                    <span id="star-count" class="font-title text-2xl text-indigo-600">0</span>
-                </div>
-                <div class="hidden md:flex bg-white/50 w-48 h-4 rounded-full overflow-hidden border-2 border-white">
-                    <div id="level-progress" class="progress-bar-inner h-full bg-gradient-to-r from-indigo-400 to-pink-500 w-0"></div>
-                </div>
-            </div>
-
-            <div class="flex gap-2">
-                <button onclick="showSection('trophies')" class="glass-card p-3 rounded-2xl hover:scale-110 transition-transform flex items-center gap-2">
-                    <span class="text-xl">🏆</span>
-                    <span id="badge-notification" class="hidden w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-                </button>
-                <button onclick="showSection('map')" class="glass-card p-3 rounded-2xl hover:scale-110 transition-transform">
-                    🏠
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- MAIN CONTENT -->
-    <main id="game-container" class="pt-24 pb-12 px-4 max-w-5xl mx-auto transition-all duration-500">
-        
-        <!-- SECTION 0: ADVENTURE MAP -->
-        <section id="map-section" class="space-y-8">
-            <div class="text-center space-y-2">
-                <h1 class="text-6xl md:text-8xl font-display text-indigo-600 drop-shadow-md">FOOTPRINTS</h1>
-                <p class="text-indigo-500 font-title tracking-[0.1em] text-2xl">Unit 4 Second Grade</p>
-                <p class="text-slate-400 font-bold uppercase text-xs mt-4">Help Zog repair his ship</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
-                <!-- Mission 1 -->
-                <button id="btn-learn" onclick="startMission('learn')" class="glass-card group p-6 rounded-[40px] flex items-center gap-6 hover:bg-indigo-50 transition-all text-left relative">
-                    <div class="w-24 h-24 bg-indigo-100 rounded-3xl flex items-center justify-center text-5xl group-hover:scale-110 transition-transform">🛰️</div>
-                    <div>
-                        <h3 class="font-title text-2xl text-indigo-600">Sound Radar</h3>
-                        <p class="text-slate-500 font-medium">Listen and learn magic words</p>
-                    </div>
-                </button>
-
-                <!-- Mission 2 -->
-                <button id="btn-memory" onclick="startMission('memory')" class="glass-card mission-locked group p-6 rounded-[40px] flex items-center gap-6 hover:bg-pink-50 transition-all text-left relative">
-                    <div class="absolute top-4 right-4 text-xl status-icon">🔒</div>
-                    <div class="w-24 h-24 bg-pink-100 rounded-3xl flex items-center justify-center text-5xl group-hover:scale-110 transition-transform">🧬</div>
-                    <div>
-                        <h3 class="font-title text-2xl text-pink-600">Twin DNA</h3>
-                        <p class="text-slate-500 font-medium">Find all the energy pairs</p>
-                    </div>
-                </button>
-
-                <!-- Mission 3 -->
-                <button id="btn-spelling" onclick="startMission('spelling')" class="glass-card mission-locked group p-6 rounded-[40px] flex items-center gap-6 hover:bg-emerald-50 transition-all text-left relative">
-                    <div class="absolute top-4 right-4 text-xl status-icon">🔒</div>
-                    <div class="w-24 h-24 bg-emerald-100 rounded-3xl flex items-center justify-center text-5xl group-hover:scale-110 transition-transform">🧩</div>
-                    <div>
-                        <h3 class="font-title text-2xl text-emerald-600">Assembler</h3>
-                        <p class="text-slate-500 font-medium">Build words piece by piece</p>
-                    </div>
-                </button>
-
-                <!-- Final Mission -->
-                <button id="btn-quiz" onclick="startMission('quiz')" class="glass-card mission-locked group p-6 rounded-[40px] flex items-center gap-6 bg-indigo-600 border-none text-left relative overflow-hidden">
-                    <div class="absolute top-4 right-4 text-xl status-icon">🔒</div>
-                    <div class="absolute right-[-20px] top-[-20px] text-9xl opacity-10">🚀</div>
-                    <div class="w-24 h-24 bg-white/20 rounded-3xl flex items-center justify-center text-5xl group-hover:rotate-12 transition-all">🌠</div>
-                    <div>
-                        <h3 class="font-title text-2xl text-white">Final Liftoff</h3>
-                        <p class="text-indigo-100 font-medium">Show what you know and fly high</p>
-                    </div>
-                </button>
-            </div>
-
-            <!-- Zog Helper -->
-            <div id="zog-container" class="flex justify-center mt-12">
-                <div class="flex flex-col items-center">
-                    <div class="glass-card p-4 rounded-3xl mb-4 relative float">
-                        <p id="zog-bubble" class="font-bold text-indigo-600 text-center">Complete missions to earn badges!</p>
-                        <div class="absolute bottom-[-10px] left-1/2 -translate-x-2 w-5 h-5 bg-white rotate-45 border-r-4 border-b-4 border-indigo-50"></div>
-                    </div>
-                    <div class="text-8xl" id="zog-helper">👽</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECTION 1: LEARN (Radar) -->
-        <section id="learn-section" class="hidden bounce-in">
-            <div class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-3xl shadow-sm gap-4">
-                <div class="text-center md:text-left">
-                    <h2 class="font-title text-indigo-600 text-2xl">Radar Training</h2>
-                    <p class="text-slate-400 text-sm">Listen to ALL cards before finishing</p>
-                </div>
-                <button id="finish-radar-btn" onclick="tryFinishRadar()" class="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">FINISH RADAR 🛰️</button>
-            </div>
-            <div id="learn-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
-        </section>
-
-        <!-- SECTION 2: MEMORY (Twin DNA) -->
-        <section id="memory-section" class="hidden max-w-4xl mx-auto bounce-in">
-            <div class="text-center mb-6">
-                <h2 class="font-title text-pink-600 text-3xl">Twin DNA Pairs</h2>
-                <p class="text-slate-500">Find the 16 pairs to restore energy</p>
-            </div>
-            <div id="memory-board" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3"></div>
-        </section>
-
-        <!-- SECTION 3: SPELLING (Assembler) -->
-        <section id="spelling-section" class="hidden max-w-3xl mx-auto bounce-in">
-            <div class="glass-card p-8 rounded-[50px] text-center space-y-8">
-                <!-- Icono que al ser pulsado repite la palabra -->
-                <div id="spelling-icon" onclick="repeatSpellingWord()" class="text-7xl mb-4 float cursor-pointer hover:scale-110 active:scale-90 transition-transform">🛸</div>
-                <div id="spelling-slots" class="flex justify-center flex-wrap gap-2 min-h-[80px]"></div>
-                <div id="spelling-keyboard" class="flex flex-wrap justify-center gap-3 mt-8"></div>
-                <button onclick="resetWord()" class="text-slate-400 font-bold text-xs uppercase hover:text-indigo-500">Restart Word</button>
-            </div>
-        </section>
-
-        <!-- SECTION 4: QUIZ (Liftoff) -->
-        <section id="quiz-section" class="hidden max-w-2xl mx-auto bounce-in">
-            <div id="quiz-card" class="glass-card p-10 rounded-[50px] text-center space-y-8"></div>
-        </section>
-
-        <!-- SECTION 5: TROPHIES -->
-        <section id="trophies-section" class="hidden bounce-in">
-            <div class="text-center mb-8">
-                <h2 class="text-5xl font-display text-indigo-600">Your Badge Collection</h2>
-                <p class="text-slate-500 font-medium">Achievements earned in this unit</p>
-            </div>
-            <div id="trophy-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6"></div>
-        </section>
-
-    </main>
-
-    <!-- GLOBAL MODAL -->
-    <div id="global-modal" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4 bg-indigo-950/80 backdrop-blur-md">
-        <div class="glass-card max-w-md w-full rounded-[50px] p-10 text-center space-y-6 bounce-in">
-            <div id="modal-emoji" class="text-9xl">✨</div>
-            <h2 id="modal-title" class="text-4xl font-display text-indigo-600 uppercase"></h2>
-            <p id="modal-msg" class="text-slate-600 font-bold"></p>
-            <button id="modal-btn" onclick="hideModal()" class="w-full py-5 bg-indigo-600 text-white rounded-3xl font-title text-xl shadow-xl hover:bg-indigo-700 transition-all uppercase">LET'S GO!</button>
-        </div>
-    </div>
-
-    <!-- DIPLOMA MODAL -->
-    <div id="diploma-modal" class="fixed inset-0 z-[300] hidden flex items-center justify-center p-4 bg-indigo-900/90 backdrop-blur-xl">
-        <div class="glass-card max-lg w-full rounded-[60px] p-10 text-center space-y-6">
-            <div class="text-8xl">👑</div>
-            <h2 class="text-4xl font-display text-indigo-600">Legendary Explorer!</h2>
-            <p class="text-slate-500 font-bold">Enter your name for your official badge:</p>
-            <input type="text" id="player-name" placeholder="YOUR NAME HERE..." class="w-full p-6 text-2xl font-title text-center rounded-[30px] border-4 border-indigo-100 outline-none focus:border-indigo-400 text-indigo-600">
-            <button onclick="downloadDiploma()" class="w-full py-6 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-[30px] font-title text-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all">
-                ✨ DOWNLOAD DIPLOMA ✨
-            </button>
-        </div>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <script>
-        const VOCABULARY = [
-            { word: 'THESE', icon: '👈' }, { word: 'NOSE', icon: '👃' },
-            { word: 'USE', icon: '🛠️' }, { word: 'ROSE', icon: '🌹' },
-            { word: 'POLE', icon: '🚩' }, { word: 'CLOSE', icon: '🚪' },
-            { word: 'CUTE', icon: '🥰' }, { word: 'THOSE', icon: '👉' },
-            { word: 'MULE', icon: '🫏' }, { word: 'ONE', icon: '1️⃣' },
-            { word: 'LOVE', icon: '❤️' }, { word: 'COME', icon: '👋' },
-            { word: 'HOME', icon: '🏠' }, { word: 'JOKE', icon: '😂' },
-            { word: 'WROTE', icon: '✍️' }, { word: 'ICE CUBE', icon: '🧊' }
-        ];
-
-        const BADGES_CONFIG = {
-            'learn': { name: 'Radar Scout', icon: '🛰️', desc: 'Auditory exploration complete' },
-            'memory': { name: 'Memory Master', icon: '🧠', desc: 'Visual-semantic connection' },
-            'spelling': { name: 'Word Architect', icon: '🏗️', desc: 'Orthographic construction' },
-            'quiz': { name: 'Star Pilot', icon: '🌠', desc: 'Final assessment excellence' }
-        };
-
-        let state = {
-            stars: 0,
-            completedMissions: [], 
-            trophies: [],
-            currentWordIdx: 0,
-            spellingAttempt: [],
-            scaffoldingLevel: 2,
-            memoryActive: [],
-            quizScore: 0,
-            radarHeard: new Set()
-        };
-
-        function say(text) {
-            window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance(text.toLowerCase());
-            utter.lang = 'en-US';
-            utter.rate = 0.85;
-            window.speechSynthesis.speak(utter);
-        }
-
-        function showSection(id) {
-            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-            document.getElementById(`${id}-section`).classList.remove('hidden');
-            window.scrollTo(0,0);
-            if(id === 'map') updateMapStatus();
-            if(id === 'trophies') {
-                renderTrophies();
-                document.getElementById('badge-notification').classList.add('hidden');
-            }
-        }
-
-        function updateMapStatus() {
-            const missions = ['learn', 'memory', 'spelling', 'quiz'];
-            missions.forEach((type, index) => {
-                const btn = document.getElementById(`btn-${type}`);
-                const statusIcon = btn.querySelector('.status-icon');
-                const isUnlocked = index === 0 || state.completedMissions.includes(missions[index - 1]);
-                const isDone = state.completedMissions.includes(type);
-
-                if (isUnlocked) {
-                    btn.classList.remove('mission-locked');
-                    if (statusIcon) statusIcon.innerText = isDone ? '✅' : '🔓';
-                } else {
-                    btn.classList.add('mission-locked');
-                    if (statusIcon) statusIcon.innerText = '🔒';
-                }
-            });
-        }
-
-        function unlockBadge(missionKey) {
-            const config = BADGES_CONFIG[missionKey];
-            if (!state.trophies.find(t => t.id === missionKey)) {
-                state.trophies.push({
-                    id: missionKey,
-                    name: config.name,
-                    icon: config.icon,
-                    description: config.desc,
-                    date: new Date().toLocaleDateString()
-                });
-                document.getElementById('badge-notification').classList.remove('hidden');
-                updateZog(`You earned a badge: ${config.name}! 🏆`);
-            }
-        }
-
-        function finishMission(type) {
-            if (!state.completedMissions.includes(type)) {
-                state.completedMissions.push(type);
-                addStars(50);
-                unlockBadge(type);
-                confetti();
-            }
-            showSection('map');
-        }
-
-        function startMission(type) {
-            showSection(type);
-            if(type === 'learn') renderLearn();
-            if(type === 'memory') initMemory();
-            if(type === 'spelling') initSpelling();
-            if(type === 'quiz') initQuiz();
-        }
-
-        function updateZog(msg) {
-            const bubble = document.getElementById('zog-bubble');
-            if(bubble) bubble.innerText = msg;
-        }
-
-        function addStars(amount) {
-            state.stars += amount;
-            document.getElementById('star-count').innerText = state.stars;
-            const progress = (state.stars % 100);
-            document.getElementById('level-progress').style.width = `${progress}%`;
-        }
-
-        // --- LEARN (Radar) ---
-        function renderLearn() {
-            const grid = document.getElementById('learn-grid');
-            grid.innerHTML = VOCABULARY.map(item => {
-                const isHeard = state.radarHeard.has(item.word);
-                return `
-                    <div id="radar-${item.word.replace(' ', '-')}" onclick="clickLearn('${item.word}')" class="radar-card glass-card p-6 rounded-[35px] text-center cursor-pointer hover:scale-105 active:scale-95 transition-all relative ${isHeard ? 'heard' : ''}">
-                        <div class="heard-check absolute top-4 right-4 text-indigo-500 hidden text-xl">✅</div>
-                        <div class="text-5xl mb-3 float">${item.icon}</div>
-                        <div class="font-title text-indigo-600 text-lg uppercase">${item.word}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function clickLearn(word) { 
-            say(word); 
-            if(!state.radarHeard.has(word)) {
-                state.radarHeard.add(word);
-                addStars(1);
-                const el = document.getElementById(`radar-${word.replace(' ', '-')}`);
-                if(el) el.classList.add('heard');
-            }
-        }
-
-        function tryFinishRadar() {
-            if(state.radarHeard.size < VOCABULARY.length) {
-                const missing = VOCABULARY.length - state.radarHeard.size;
-                showModal("SCAN NOT COMPLETE", `Zog's radar needs to hear ${missing} more words to calibrate!`, "🛰️");
-            } else {
-                if (!state.completedMissions.includes('learn')) {
-                    state.completedMissions.push('learn');
-                    addStars(50);
-                    unlockBadge('learn');
-                    confetti();
-                }
-                showModal("RADAR READY!", "Scanning complete! Energy signatures found. Moving to Twin DNA mission!", "🛰️");
-                
-                const modalBtn = document.getElementById('modal-btn');
-                const originalOnClick = modalBtn.onclick;
-                modalBtn.onclick = () => {
-                    document.getElementById('global-modal').classList.add('hidden');
-                    startMission('memory');
-                    modalBtn.onclick = originalOnClick;
-                };
-            }
-        }
-
-        // --- MEMORY (Twin DNA) ---
-        function initMemory() {
-            const board = document.getElementById('memory-board');
-            board.innerHTML = '';
-            state.memoryActive = [];
-            const words = [...VOCABULARY];
-            const deck = [...words, ...words].sort(() => 0.5 - Math.random());
-            
-            deck.forEach(item => {
-                const card = document.createElement('div');
-                card.className = "h-20 sm:h-24 bg-white rounded-[20px] border-2 border-indigo-100 flex items-center justify-center cursor-pointer hover:shadow-xl transition-all shadow-sm overflow-hidden";
-                card.innerHTML = `
-                    <div class="opacity-0 transition-opacity duration-300 text-center flex flex-col items-center">
-                        <span class="text-3xl">${item.icon}</span>
-                        <span class="text-[10px] font-bold text-indigo-600 mt-1 uppercase">${item.word}</span>
-                    </div>
-                `;
-                card.onclick = () => flipCard(card, item);
-                board.appendChild(card);
-            });
-        }
-        function flipCard(el, item) {
-            if (el.classList.contains('matched') || state.memoryActive.length >= 2 || el.querySelector('div').classList.contains('opacity-100')) return;
-            el.querySelector('div').classList.replace('opacity-0', 'opacity-100');
-            el.classList.add('bg-indigo-50', 'border-indigo-400');
-            say(item.word);
-            state.memoryActive.push({el, item});
-            if(state.memoryActive.length === 2) {
-                const [c1, c2] = state.memoryActive;
-                if(c1.item.word === c2.item.word) {
-                    c1.el.classList.add('matched', 'bg-emerald-50', 'border-emerald-500');
-                    c2.el.classList.add('matched', 'bg-emerald-50', 'border-emerald-500');
-                    addStars(10);
-                    state.memoryActive = [];
-                    if(document.querySelectorAll('.matched').length === 32) {
-                        setTimeout(() => { 
-                            if (!state.completedMissions.includes('memory')) {
-                                state.completedMissions.push('memory');
-                                addStars(50);
-                                unlockBadge('memory');
-                                confetti();
-                            }
-                            showModal("MISSION COMPLETE!", "All energy pairs restored. Let's build the words!", "🧬"); 
-                            
-                            const modalBtn = document.getElementById('modal-btn');
-                            const originalOnClick = modalBtn.onclick;
-                            modalBtn.onclick = () => {
-                                document.getElementById('global-modal').classList.add('hidden');
-                                startMission('spelling');
-                                modalBtn.onclick = originalOnClick;
-                            };
-                        }, 1000);
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'footprints-green': '#2D6A4F',
+                        'footprints-light': '#D8F3DC',
+                        'footprints-accent': '#FF9F1C',
+                        'footprints-blue': '#00B4D8',
+                        'footprints-dark': '#1B4332',
                     }
-                } else {
-                    setTimeout(() => {
-                        c1.el.querySelector('div').classList.replace('opacity-100', 'opacity-0');
-                        c2.el.querySelector('div').classList.replace('opacity-100', 'opacity-0');
-                        c1.el.classList.remove('bg-indigo-50', 'border-indigo-400');
-                        c2.el.classList.remove('bg-indigo-50', 'border-indigo-400');
-                        state.memoryActive = [];
-                    }, 1000);
                 }
             }
         }
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap');
 
-        // --- SPELLING (Assembler) ---
-        function initSpelling() { state.currentWordIdx = 0; state.scaffoldingLevel = 2; renderSpelling(); }
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #f8fafc;
+            color: #1b4332;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .flashcard { perspective: 1000px; height: 12rem; }
+        .flashcard-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back {
+            backface-visibility: hidden;
+            position: absolute;
+            inset: 0;
+            border-radius: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .flashcard-back { transform: rotateY(180deg); }
+
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; }
+            @page { size: A4 portrait; margin: 0; }
+            
+            .certificate-container {
+                width: 210mm;
+                height: 297mm;
+                padding: 20mm;
+                border: 20px solid #2D6A4F;
+                background: white !important;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                text-align: center;
+                box-sizing: border-box;
+                position: relative;
+                color: #1B4332 !important;
+                -webkit-print-color-adjust: exact;
+            }
+            .cert-stamp {
+                width: 130px;
+                height: 130px;
+                border: 4px dashed #FF9F1C;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transform: rotate(-15deg);
+                color: #FF9F1C;
+                font-weight: bold;
+                margin: 0 auto;
+            }
+        }
+        .print-only { display: none; }
+
+        @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pulse-soft { animation: pulse-soft 2s infinite; }
+        .option-btn:disabled { cursor: default; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-footprints-green text-white shadow-md no-print sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="speak('Footprints Sciences Third Grade')">
+                <i class="fas fa-paw text-footprints-accent text-3xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold tracking-tight">Footprints <span class="text-footprints-light">Sciences</span></h1>
+            </div>
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#vocab" class="font-semibold hover:text-footprints-accent transition-colors">Vocabulary</a>
+                <a href="#stats" class="font-semibold hover:text-footprints-accent transition-colors">Statistics</a>
+                <a href="#quiz" class="bg-footprints-accent text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-orange-500 transition-all hover:scale-105">Take the Challenge!</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto px-4 py-12 space-y-20 w-full no-print">
         
-        function repeatSpellingWord() {
-            const current = VOCABULARY[state.currentWordIdx];
-            if(current) say(current.word);
-        }
+        <section class="text-center space-y-6">
+            <div class="inline-block px-4 py-1 bg-footprints-light text-footprints-green rounded-full font-bold text-sm tracking-widest uppercase">Chapter 2: Animal Classification</div>
+            <h2 class="text-5xl md:text-7xl font-extrabold text-footprints-dark">Exploration Lab</h2>
+            <p class="text-xl text-slate-500 max-w-2xl mx-auto font-medium">Master the science of the animal kingdom and earn your Professional Certificate of Competency.</p>
+        </section>
 
-        function renderSpelling() {
-            const current = VOCABULARY[state.currentWordIdx];
-            const word = current.word.replace(/\s/g, '');
-            state.spellingAttempt = [];
-            document.getElementById('spelling-icon').innerText = current.icon;
-            const slots = document.getElementById('spelling-slots');
-            slots.innerHTML = '';
-            
-            // MODIFICACIÓN: Solo la primera palabra (index 0) muestra marca de agua
-            const shouldShowHint = state.currentWordIdx === 0;
+        <section id="vocab" class="space-y-8 scroll-mt-24">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-footprints-blue rounded-2xl flex items-center justify-center text-white text-xl shadow-lg shadow-blue-200">
+                    <i class="fas fa-spell-check"></i>
+                </div>
+                <h3 class="text-3xl font-bold">Key Scientific Terms</h3>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="flashcards-container"></div>
+        </section>
 
-            for(let i=0; i < word.length; i++) {
-                const s = document.createElement('div');
-                s.className = "letter-slot";
-                if(shouldShowHint) { 
-                    s.innerText = word[i]; 
-                    s.classList.add('opacity-30'); 
-                }
-                slots.appendChild(s);
-            }
-            const keyboard = document.getElementById('spelling-keyboard');
-            keyboard.innerHTML = '';
-            const letters = word.split('').sort(() => 0.5 - Math.random());
-            letters.forEach(l => {
-                const btn = document.createElement('button');
-                btn.className = "spelling-tile w-14 h-14 bg-white rounded-2xl font-title text-2xl text-slate-700 flex items-center justify-center border-2 border-slate-100";
-                btn.innerText = l;
-                btn.onclick = () => handleSpellingInput(l, btn);
-                keyboard.appendChild(btn);
-            });
-            say(current.word);
-        }
+        <div id="stats" class="grid grid-cols-1 lg:grid-cols-2 gap-8 scroll-mt-24">
+            <section class="glass-card rounded-3xl p-8 shadow-xl border-t-4 border-footprints-green">
+                <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                    <i class="fas fa-dna text-footprints-green"></i> Main Animal Groups
+                </h3>
+                <div id="tabs-nav" class="flex flex-wrap gap-2 mb-8"></div>
+                <div id="tab-display" class="bg-slate-50 p-8 rounded-2xl text-center min-h-[220px] flex flex-col justify-center items-center border-2 border-dashed border-slate-200">
+                    <i class="fas fa-hand-pointer text-slate-300 text-4xl mb-4"></i>
+                    <p class="text-slate-400 font-bold uppercase tracking-widest text-sm">Select a group to explore</p>
+                </div>
+            </section>
 
-        function handleSpellingInput(letter, btn) {
-            const targetWord = VOCABULARY[state.currentWordIdx].word.replace(/\s/g, '');
-            const nextIdx = state.spellingAttempt.length;
-            if(letter === targetWord[nextIdx]) {
-                say(letter);
-                state.spellingAttempt.push(letter);
-                const slot = document.getElementById('spelling-slots').children[nextIdx];
-                slot.innerText = letter; slot.classList.remove('opacity-30'); slot.classList.add('correct');
-                btn.style.visibility = 'hidden';
-                if(state.spellingAttempt.length === targetWord.length) {
-                    addStars(15);
-                    state.currentWordIdx++;
-                    if(state.currentWordIdx < VOCABULARY.length) { setTimeout(renderSpelling, 1000); }
-                    else { 
-                        if (!state.completedMissions.includes('spelling')) {
-                            state.completedMissions.push('spelling');
-                            addStars(50);
-                            unlockBadge('spelling');
-                            confetti();
-                        }
-                        showModal("WORDS ASSEMBLED", "Great construction work! Ready for the Final Liftoff?", "🏗️"); 
-                        
-                        const modalBtn = document.getElementById('modal-btn');
-                        const originalOnClick = modalBtn.onclick;
-                        modalBtn.onclick = () => {
-                            document.getElementById('global-modal').classList.add('hidden');
-                            startMission('quiz');
-                            modalBtn.onclick = originalOnClick;
-                        };
-                    }
-                }
-            } else {
-                const slot = document.getElementById('spelling-slots').children[nextIdx];
-                slot.classList.add('wrong'); setTimeout(() => slot.classList.remove('wrong'), 400);
-            }
-        }
-        function resetWord() { renderSpelling(); }
+            <section class="glass-card rounded-3xl p-8 shadow-xl border-t-4 border-footprints-blue">
+                <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                    <i class="fas fa-chart-pie text-footprints-blue"></i> Global Population
+                </h3>
+                <div class="h-64">
+                    <canvas id="popChart"></canvas>
+                </div>
+            </section>
+        </div>
 
-        // --- QUIZ ---
-        function initQuiz() { state.quizScore = 0; state.currentWordIdx = 0; renderQuiz(); }
-        function renderQuiz() {
-            const card = document.getElementById('quiz-card');
-            const correct = VOCABULARY[state.currentWordIdx];
-            let options = [correct];
-            while(options.length < 3) {
-                const r = VOCABULARY[Math.floor(Math.random() * VOCABULARY.length)];
-                if(!options.includes(r)) options.push(r);
-            }
-            options.sort(() => 0.5 - Math.random());
-            card.innerHTML = `
-                <p class="text-slate-400 font-bold uppercase text-xs">Challenge ${state.currentWordIdx + 1}/16</p>
-                <h2 class="text-4xl font-display text-indigo-600">Which word do you hear?</h2>
-                <button onclick="say('${correct.word}')" class="w-32 h-32 bg-indigo-600 text-white rounded-[40px] mx-auto flex items-center justify-center text-6xl shadow-2xl hover:scale-105 transition-all">🔊</button>
-                <div class="grid gap-4 mt-8">${options.map(opt => `<button onclick="checkQuizAnswer('${opt.word}', '${correct.word}')" class="py-6 rounded-3xl bg-indigo-50 border-4 border-white text-2xl font-title text-indigo-700 hover:border-indigo-400 transition-all uppercase">${opt.word}</button>`).join('')}</div>
-            `;
-            setTimeout(() => say(correct.word), 500);
-        }
-        function checkQuizAnswer(ans, correct) {
-            if(ans === correct) { state.quizScore++; addStars(20); }
-            state.currentWordIdx++;
-            if(state.currentWordIdx < VOCABULARY.length) { renderQuiz(); }
-            else {
-                finishMission('quiz');
-                if(state.quizScore >= 12) { document.getElementById('diploma-modal').classList.remove('hidden'); }
-                else { showModal("Good try!", `Score: ${state.quizScore}/16. Practice more for your diploma!`, "🚀"); }
-            }
-        }
+        <section id="quiz" class="scroll-mt-24">
+            <div id="quiz-container" class="bg-footprints-dark rounded-[3rem] shadow-2xl overflow-hidden text-white relative">
+                <div class="p-8 md:p-16">
+                    <div id="quiz-intro" class="text-center space-y-8 py-10">
+                        <div class="text-8xl animate-pulse-soft">🏆</div>
+                        <h3 class="text-4xl md:text-5xl font-extrabold">Final Science Exam</h3>
+                        <p class="text-footprints-light text-xl">Answer all questions to unlock your professional report and printable certificate.</p>
+                        <button id="start-btn" class="bg-footprints-accent text-white px-12 py-5 rounded-3xl text-2xl font-extrabold shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                            I'M READY!
+                        </button>
+                    </div>
 
-        // --- BADGE COLLECTION ---
-        function renderTrophies() {
-            const grid = document.getElementById('trophy-grid');
-            if(state.trophies.length === 0) {
-                grid.innerHTML = `<div class="col-span-full glass-card p-12 text-center text-slate-400 font-bold border-dashed border-4">No badges yet. Complete missions to fill your collection!</div>`;
-                return;
-            }
-            grid.innerHTML = state.trophies.map(t => `
-                <div class="glass-card p-6 rounded-[40px] text-center badge-card border-b-8 border-indigo-200">
-                    <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center text-5xl mx-auto mb-4">${t.icon}</div>
-                    <h4 class="font-title text-indigo-600 text-lg">${t.name}</h4>
-                    <p class="text-xs font-bold text-slate-400 uppercase mt-1">${t.description}</p>
-                    <div class="mt-4 pt-4 border-t border-slate-100">
-                        <span class="text-[10px] text-indigo-400 font-bold">${t.date}</span>
+                    <div id="quiz-engine" class="hidden space-y-8">
+                        <div class="flex justify-between items-center mb-8">
+                            <span id="quiz-step" class="bg-white/10 px-4 py-2 rounded-xl font-bold text-footprints-accent">Question 1/10</span>
+                        </div>
+                        <h4 id="q-text" class="text-3xl md:text-4xl font-bold leading-tight min-h-[100px]"></h4>
+                        <div id="options" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+
+                    <div id="name-entry" class="hidden text-center space-y-8 py-10">
+                        <div class="text-7xl">✍️</div>
+                        <h3 class="text-4xl font-bold">Great Effort!</h3>
+                        <p class="text-slate-300">Enter your full name to generate your certificate:</p>
+                        <div class="max-w-md mx-auto">
+                            <input type="text" id="user-name" class="w-full bg-white/5 border-2 border-white/20 p-5 rounded-2xl text-2xl text-center outline-none focus:border-footprints-accent mb-6" placeholder="Your Name Here">
+                            <button id="results-btn" class="w-full bg-footprints-blue p-5 rounded-2xl text-xl font-bold hover:bg-cyan-500 shadow-xl transition-all">Generate Certificate & View Summary</button>
+                        </div>
+                    </div>
+
+                    <div id="summary" class="hidden space-y-10">
+                        <div class="text-center">
+                            <div class="inline-block bg-footprints-accent p-8 rounded-full shadow-2xl border-8 border-white/20 mb-6">
+                                <span id="final-score" class="text-5xl font-black text-footprints-dark">0/10</span>
+                            </div>
+                            <h3 class="text-4xl font-bold" id="final-msg">Incredible Achievement!</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="score-details"></div>
+                        <div class="flex flex-col sm:flex-row justify-center gap-4 pt-6">
+                            <button id="print-final-btn" class="bg-white text-footprints-dark px-10 py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-2xl border-b-4 border-slate-300">
+                                <i class="fas fa-print text-footprints-green"></i> PRINT AGAIN
+                            </button>
+                            <button onclick="location.reload()" class="bg-white/10 px-10 py-5 rounded-2xl font-bold hover:bg-white/20 transition-all">Try Again</button>
+                        </div>
                     </div>
                 </div>
-            `).join('');
+            </div>
+        </section>
+    </main>
+
+    <div class="print-only">
+        <div class="certificate-container" id="printable-area">
+            <div class="cert-header">
+                <h4 style="color: #2D6A4F; letter-spacing: 6px; font-weight: bold; font-family: sans-serif; text-transform: uppercase;">Footprints Science Academy</h4>
+                <div style="height: 4px; background: #FF9F1C; width: 140px; margin: 15px auto;"></div>
+            </div>
+            <div class="cert-main" style="padding: 40px 0;">
+                <p style="font-size: 24px; color: #64748b; margin-bottom: 20px; font-weight: 600;">OFFICIAL ACADEMIC RECORD</p>
+                <h1 style="font-size: 68px; margin: 10px 0; color: #1B4332; font-family: serif; font-weight: 800; line-height: 1;">Certificate of Achievement</h1>
+                <p style="font-size: 22px; margin: 30px 0 10px 0;">This distinguished recognition is awarded to:</p>
+                <h2 id="print-name" style="font-size: 58px; color: #2D6A4F; border-bottom: 3px solid #e2e8f0; display: inline-block; padding: 10px 60px; margin: 10px 0; font-style: italic; font-weight: bold;">Junior Scientist</h2>
+                <p style="font-size: 20px; margin-top: 40px; color: #475569;">For successfully mastering the curriculum on:</p>
+                <p style="font-size: 26px; font-weight: bold; color: #1B4332; margin-bottom: 50px; text-transform: uppercase; letter-spacing: 1px;">Animal Classification and Biology - Grade 3</p>
+                <div style="display: flex; justify-content: center; gap: 30px; margin-top: 20px;">
+                    <div style="background: #f8fafc; padding: 25px; border-radius: 20px; min-width: 180px; border: 1px solid #e2e8f0;">
+                        <p style="font-size: 14px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 5px;">Score Received</p>
+                        <p id="print-score" style="font-size: 44px; font-weight: bold; color: #2D6A4F;">0/10</p>
+                    </div>
+                    <div style="background: #D8F3DC; padding: 25px; border-radius: 20px; min-width: 180px; border: 1px solid #B7E4C7;">
+                        <p style="font-size: 14px; font-weight: bold; color: #2D6A4F; text-transform: uppercase; margin-bottom: 5px;">Final Grade</p>
+                        <p id="print-average" style="font-size: 44px; font-weight: bold; color: #1B4332;">0%</p>
+                    </div>
+                    <div style="background: #f8fafc; padding: 25px; border-radius: 20px; min-width: 180px; border: 1px solid #e2e8f0;">
+                        <p style="font-size: 14px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 5px;">Issue Date</p>
+                        <p id="print-date" style="font-size: 20px; font-weight: bold; color: #2D6A4F; margin-top: 15px;">--/--/--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="cert-footer" style="display: flex; justify-content: space-between; align-items: flex-end; padding: 40px 60px;">
+                <div style="text-align: left;">
+                    <p style="font-weight: bold; color: #1B4332; margin-bottom: 5px;">Science Competency Board 2024</p>
+                    <p style="font-size: 11px; color: #94a3b8;">Verification ID: FS-3G-CERT-ACADEMY-021</p>
+                </div>
+                <div class="cert-stamp">
+                    <div style="text-align: center; line-height: 1;">
+                        <i class="fas fa-award" style="font-size: 36px; margin-bottom: 8px;"></i><br>
+                        <span style="font-size: 13px; letter-spacing: 1px;">CERTIFIED</span>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="border-top: 2px solid #2D6A4F; width: 220px; padding-top: 10px;">
+                        <p style="font-weight: bold; font-size: 16px; color: #1B4332;">Digital Science Instructor</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-footprints-dark text-white/40 py-12 text-center no-print border-t border-white/5">
+        <p>© 2024 Footprints Sciences 3rd Grade - Educational Competency Tool</p>
+    </footer>
+
+    <script>
+        function speak(text, interrupt = true) {
+            if (interrupt) window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
         }
 
-        function showModal(title, msg, emoji) {
-            document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-msg').innerText = msg;
-            document.getElementById('modal-emoji').innerText = emoji;
-            document.getElementById('global-modal').classList.remove('hidden');
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioCtx();
+        function playSound(type) {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            if (type === 'correct') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                oscillator.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.1); 
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+            } else {
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(220, audioCtx.currentTime); 
+                oscillator.frequency.linearRampToValueAtTime(110, audioCtx.currentTime + 0.2); 
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+            }
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
         }
-        function hideModal() { document.getElementById('global-modal').classList.add('hidden'); showSection('map'); }
 
-        function downloadDiploma() {
-            const name = document.getElementById('player-name').value || "SUPER EXPLORER";
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('l', 'mm', 'a4');
-            const w = 297, h = 210;
-            doc.setFillColor(30, 27, 75); doc.rect(0, 0, w, h, 'F');
-            doc.setFillColor(255, 255, 255); doc.roundedRect(10, 10, w-20, h-20, 15, 15, 'F');
-            doc.setDrawColor(99, 102, 241); doc.setLineWidth(3); doc.roundedRect(15, 15, w-30, h-30, 12, 12, 'S');
-            doc.setTextColor(99, 102, 241); doc.setFontSize(50); doc.text("FOOTPRINTS DIPLOMA", w/2, 50, {align: 'center'});
-            doc.setFontSize(20); doc.setTextColor(148, 163, 184); doc.text("Unit 4 - Second Grade", w/2, 65, {align: 'center'});
-            doc.setFontSize(45); doc.setTextColor(236, 72, 153); doc.text(name.toUpperCase(), w/2, 115, {align: 'center'});
-            doc.setFontSize(18); doc.setTextColor(71, 85, 105); doc.text("For successfully mastering the magic vocabulary of special sounds.", w/2, 145, {align: 'center'});
-            doc.setFontSize(22); doc.setTextColor(16, 185, 129); doc.text(`FINAL SCORE: ${state.quizScore}/16`, w/2, 175, {align: 'center'});
-            doc.save(`Diploma_${name}.pdf`);
-            document.getElementById('diploma-modal').classList.add('hidden');
-            showModal("DONE!", "Your diploma has been saved.", "🌟");
-        }
+        const vocab = [
+            { t: "Vertebrate", d: "Animal that has a backbone or spine.", i: "🦴" },
+            { t: "Invertebrate", d: "Animal without a backbone, like insects or octopuses.", i: "🐙" },
+            { t: "Habitat", d: "The natural home or environment of a plant or animal.", i: "🌿" },
+            { t: "Endangered", d: "A species at risk of extinction because so few are left.", i: "🐼" },
+            { t: "Extinct", d: "A group of animals that no longer exists on Earth.", i: "☄️" },
+            { t: "Fossil", d: "The preserved remains of a living thing from long ago.", i: "🐚" }
+        ];
 
-        window.onload = () => { updateMapStatus(); };
+        const groups = [
+            { n: "Mammals", d: "They have hair, breathe with lungs, and feed their young with milk.", i: "🐘" },
+            { n: "Birds", d: "They have feathers, wings, and lay eggs in nests.", i: "🦅" },
+            { n: "Amphibians", d: "They live double lives: in water when born and on land as adults.", i: "🐸" },
+            { n: "Arthropods", d: "They have jointed legs and a hard outer shell called an exoskeleton.", i: "🐝" }
+        ];
+
+        const quizData = [
+            { q: "What do we call an animal that has a backbone?", a: "Vertebrate", o: ["Vertebrate", "Invertebrate", "Arthropod", "Mollusk"] },
+            { q: "A species that is no longer found on Earth is called:", a: "Extinct", o: ["Endangered", "Extinct", "Fossil", "Safe"] },
+            { q: "The place where a plant or animal naturally lives is its:", a: "Habitat", o: ["Habitat", "Ecosystem", "Neighborhood", "Garden"] },
+            { q: "Spiders and insects are examples of:", a: "Invertebrates", o: ["Vertebrates", "Invertebrates", "Mammals", "Birds"] },
+            { q: "What do we call the preserved remains of ancient living things?", a: "Fossil", o: ["Stone", "Fossil", "Bone", "Shell"] },
+            { q: "A species with very few living members left is:", a: "Endangered", o: ["Extinct", "Endangered", "Rare", "Missing"] },
+            { q: "Which group of animals has hair and produces milk?", a: "Mammal", o: ["Bird", "Mammal", "Reptile", "Fish"] },
+            { q: "An animal with gills at birth and lungs as an adult is an:", a: "Amphibian", o: ["Fish", "Amphibian", "Reptile", "Bird"] },
+            { q: "Which vertebrate has wings and is covered in feathers?", a: "Bird", o: ["Insect", "Bird", "Mammal", "Bat"] },
+            { q: "Animals with jointed legs and an outer skeleton are:", a: "Arthropods", o: ["Arthropods", "Mollusks", "Mammals", "Birds"] }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const vCont = document.getElementById('flashcards-container');
+            vocab.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'flashcard cursor-pointer';
+                el.innerHTML = `<div class="flashcard-inner"><div class="flashcard-front bg-white border-b-4 border-footprints-blue"><span class="text-4xl mb-2">${item.i}</span><h4 class="font-bold text-xl">${item.t}</h4><p class="text-[10px] uppercase font-bold text-slate-300 mt-2">Click to flip</p></div><div class="flashcard-back bg-footprints-blue text-white text-center font-bold text-lg p-6">${item.d}</div></div>`;
+                el.onclick = () => { el.classList.toggle('flipped'); speak(`${item.t}. ${item.d}`); };
+                vCont.appendChild(el);
+            });
+
+            const tNav = document.getElementById('tabs-nav');
+            const tDisp = document.getElementById('tab-display');
+            groups.forEach(g => {
+                const b = document.createElement('button');
+                b.className = "px-6 py-3 bg-white rounded-2xl font-bold shadow-sm hover:bg-footprints-green hover:text-white transition-all active:scale-95";
+                b.innerHTML = `${g.i} ${g.n}`;
+                b.onclick = () => { speak(g.n + ". " + g.d); tDisp.innerHTML = `<div class="text-5xl mb-4">${g.i}</div><h4 class="text-2xl font-bold text-footprints-green mb-2">${g.n}</h4><p class="text-slate-600 text-lg max-w-sm">${g.d}</p>`; tDisp.classList.remove('border-dashed'); };
+                tNav.appendChild(b);
+            });
+
+            new Chart(document.getElementById('popChart'), {
+                type: 'doughnut',
+                data: { labels: ['Invertebrates', 'Vertebrates'], datasets: [{ data: [95, 5], backgroundColor: ['#00B4D8', '#FF9F1C'], borderWidth: 0 }] },
+                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { font: { family: 'Quicksand', weight: 'bold' } } } } }
+            });
+
+            let cur = 0, score = 0, results = [], userNameGlobal = "";
+            const startBtn = document.getElementById('start-btn'), intro = document.getElementById('quiz-intro'), engine = document.getElementById('quiz-engine'), nameS = document.getElementById('name-entry'), summS = document.getElementById('summary');
+
+            startBtn.onclick = () => { intro.classList.add('hidden'); engine.classList.remove('hidden'); loadQ(); };
+
+            function loadQ() {
+                const q = quizData[cur];
+                document.getElementById('q-text').innerText = q.q;
+                document.getElementById('quiz-step').innerText = `Question ${cur + 1}/${quizData.length}`;
+                speak(`Question ${cur + 1}. ${q.q}`, true);
+                const opts = document.getElementById('options');
+                opts.innerHTML = '';
+                q.o.forEach(o => {
+                    const b = document.createElement('button');
+                    b.className = "option-btn p-5 bg-white/5 border-2 border-white/10 rounded-2xl text-left font-bold text-lg hover:bg-white/10 transition-all";
+                    b.innerText = o;
+                    b.onclick = () => check(o, q.a, b);
+                    opts.appendChild(b);
+                });
+            }
+
+            function check(choice, correct, btn) {
+                const isCorrect = choice === correct;
+                Array.from(document.getElementById('options').children).forEach(b => b.disabled = true);
+                if(isCorrect) { score++; playSound('correct'); speak("Correct!", false); btn.classList.add('!bg-emerald-500'); } 
+                else { playSound('error'); speak(`Incorrect. It was ${correct}`, false); btn.classList.add('!bg-red-500'); }
+                results.push({q: quizData[cur].q, ok: isCorrect});
+                setTimeout(() => { cur++; if(cur < quizData.length) loadQ(); else { engine.classList.add('hidden'); nameS.classList.remove('hidden'); } }, 4500);
+            }
+
+            function syncCertificateData(name) {
+                const average = Math.round((score / quizData.length) * 100);
+                document.getElementById('print-name').innerText = name;
+                document.getElementById('print-score').innerText = `${score}/${quizData.length}`;
+                document.getElementById('print-average').innerText = `${average}%`;
+                document.getElementById('print-date').innerText = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
+
+            document.getElementById('results-btn').onclick = () => {
+                userNameGlobal = document.getElementById('user-name').value.trim() || "Junior Scientist";
+                syncCertificateData(userNameGlobal);
+                
+                nameS.classList.add('hidden');
+                summS.classList.remove('hidden');
+                
+                document.getElementById('final-score').innerText = `${score}/${quizData.length}`;
+                document.getElementById('final-msg').innerText = score >= 8 ? `Elite Scientist: ${userNameGlobal}` : `Graduate: ${userNameGlobal}`;
+
+                const details = document.getElementById('score-details');
+                details.innerHTML = '';
+                results.forEach(r => {
+                    details.innerHTML += `<div class="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10"><i class="fas ${r.ok ? 'fa-check text-emerald-400' : 'fa-times text-red-400'}"></i><span class="text-xs font-medium truncate">${r.q}</span></div>`;
+                });
+
+                // DESCARGA AUTOMÁTICA AL GENERAR
+                setTimeout(() => { window.print(); }, 800);
+            };
+
+            document.getElementById('print-final-btn').onclick = () => { window.print(); };
+        });
     </script>
 </body>
 </html>
